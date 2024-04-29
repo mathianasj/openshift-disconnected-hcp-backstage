@@ -1,0 +1,122 @@
+---
+- name: Install haproxy
+  become: true
+  ansible.builtin.dnf:
+    name: haproxy
+    state: latest
+- name: Install podman
+  become: true
+  ansible.builtin.dnf:
+    name: podman
+    state: latest
+- name: Create tmp download directory
+  ansible.builtin.file:
+    path: /tmp/ocutils
+    state: directory
+
+- name: Check for oc
+  stat:
+    path: /usr/local/bin/oc
+  register: oc
+- name: Check for openshift-install
+  stat:
+    path: /usr/local/bin/openshift-install
+  register: openshiftinstall
+- name: Check for oc-mirror
+  stat:
+    path: /usr/local/bin/oc-mirror
+  register: ocmirror
+- name: Check for mirror-registry
+  stat:
+    path: /tmp/ocutils/mirror-registry
+  register: mirrorregistry
+
+- name: Download oc cli
+  ansible.builtin.get_url:
+    url: https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-client-linux.tar.gz
+    dest: /tmp/ocutils/openshift-client-linux.tar.gz
+    force: no
+  when: not oc.stat.exists
+- name: Download openshift install
+  ansible.builtin.get_url:
+    url: https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-install-linux.tar.gz
+    dest: /tmp/ocutils/openshift-install-linux.tar.gz
+    force: no
+  when: not openshiftinstall.stat.exists
+- name: Download oc mirror
+  ansible.builtin.get_url:
+    url: https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/latest/oc-mirror.tar.gz
+    dest: /tmp/ocutils/oc-mirror.tar.gz
+    force: no
+  when: not ocmirror.stat.exists
+- name: Download mirror registry
+  ansible.builtin.get_url:
+    url: https://developers.redhat.com/content-gateway/rest/mirror/pub/openshift-v4/clients/mirror-registry/latest/mirror-registry.tar.gz
+    dest: /tmp/ocutils/mirror-registry.tar.gz
+    force: no
+  when: not mirrorregistry.stat.exists
+
+
+- name: extract oc cli
+  ansible.builtin.unarchive:
+    src: /tmp/ocutils/openshift-client-linux.tar.gz
+    dest: /tmp/ocutils
+    remote_src: yes
+  when: not oc.stat.exists
+- name: extract openshift install
+  ansible.builtin.unarchive:
+    src: /tmp/ocutils/openshift-install-linux.tar.gz
+    dest: /tmp/ocutils
+    remote_src: yes
+  when: not openshiftinstall.stat.exists
+- name: extract oc mirror
+  ansible.builtin.unarchive:
+    src: /tmp/ocutils/oc-mirror.tar.gz
+    dest: /tmp/ocutils
+    remote_src: yes
+  when: not ocmirror.stat.exists
+- name: extract mirror registry
+  ansible.builtin.unarchive:
+    src: /tmp/ocutils/mirror-registry.tar.gz
+    dest: /tmp/ocutils
+    remote_src: yes
+  when: not mirrorregistry.stat.exists
+
+- name: Copy oc cli
+  become: true
+  ansible.builtin.copy:
+    src: /tmp/ocutils/oc
+    dest: /usr/local/bin/oc
+    mode: '0755'
+    remote_src: yes
+  when: not oc.stat.exists
+- name: Copy kubectl
+  become: true
+  ansible.builtin.copy:
+    src: /tmp/ocutils/kubectl
+    dest: /usr/local/bin/kubectl
+    mode: '0755'
+    remote_src: yes
+  when: not oc.stat.exists
+- name: Copy oc-mirror
+  become: true
+  ansible.builtin.copy:
+    src: /tmp/ocutils/oc-mirror
+    dest: /usr/local/bin/oc-mirror
+    mode: '0755'
+    remote_src: yes
+  when: not ocmirror.stat.exists
+- name: Copy openshift-install
+  become: true
+  ansible.builtin.copy:
+    src: /tmp/ocutils/openshift-install
+    dest: /usr/local/bin/openshift-install
+    mode: '0755'
+    remote_src: yes
+  when: not openshiftinstall.stat.exists
+
+
+- name: Create file to use for completed download
+  ansible.builtin.file:
+    path: /tmp/ocutils/complete
+    state: touch

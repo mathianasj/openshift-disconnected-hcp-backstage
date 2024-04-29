@@ -1,0 +1,11 @@
+- hosts: all
+  tasks:
+    - name: Setup Mirror Dependencies
+      ansible.builtin.include_tasks:
+        file: ../tasks/download_tools.yml
+    - name: Setup CA
+      ansible.builtin.include_tasks:
+        file: ../tasks/create_ca.yml
+    - name: Install quay registry Mirror
+      ansible.builtin.include_tasks:
+        file: ../tasks/setup_quay.yml

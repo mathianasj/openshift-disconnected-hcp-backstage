@@ -1,0 +1,40 @@
+---
+
+- name: Create quay root
+  become: true
+  ansible.builtin.file:
+    path: /quay
+    state: directory
+    mode: '0777'
+- name: Check for running mirror registry
+  stat:
+    path: /home/{{ansible_user_id}}/mirror-registry.output
+  register: mirrorregistryinstalled
+- name: Install mirror-registry
+  ansible.builtin.shell:
+    cmd: /tmp/ocutils/mirror-registry install --quayHostname {{ quayHostname }} --quayRoot /quay
+    chdir: /tmp/ocutils
+  register: mirrorregsitryoutput
+  when: not mirrorregistryinstalled.stat.exists
+- name: Save install output
+  ansible.builtin.copy:
+    content: "{{mirrorregsitryoutput.stdout}}"
+    dest: /home/{{ansible_user_id}}/mirror-registry.output
+  when: not mirrorregistryinstalled.stat.exists
+- name: Get install output
+  ansible.builtin.slurp:
+    src: /home/{{ansible_user_id}}/mirror-registry.output
+  register: installoutput
+- name: Read quay init password
+  set_fact:
+    quay_password: "{{ installoutput['content'] | b64decode | regex_search('.* \\(init, (.*)\\)', '\\1') | first }}"
+- name: Print quay password
+  debug:
+    var: quay_password
+- name: Set quayCredsB64
+  set_fact:
+    quayCredsB64: "{{ ('init:' + quay_password) | b64encode }}"
+- name: Write dockerconfig
+  ansible.builtin.template:
+    src: ../templates/pullsecret.json.j2
+    dest: /home/{{ansible_user_id}}/dockerconfig.json

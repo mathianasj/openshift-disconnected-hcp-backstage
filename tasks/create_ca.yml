@@ -1,0 +1,11 @@
+---
+
+- name: Create CA directory
+  ansible.builtin.file:
+    path: /home/{{ansible_user_id}}/ca
+    state: directory
+    mode: '0777'
+
+- name: Create private key with password protection
+  community.crypto.openssl_privatekey:
+    path: /home/{{ansible_user_id}}/ca/ca-certificate.key
