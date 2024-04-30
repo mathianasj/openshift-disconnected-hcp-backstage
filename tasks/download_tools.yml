@@ -9,6 +9,11 @@
   ansible.builtin.dnf:
     name: podman
     state: latest
+- name: Install cryptography library
+  become: true
+  ansible.builtin.dnf:
+    name: python3-cryptography
+    state: latest
 - name: Create tmp download directory
   ansible.builtin.file:
     path: /tmp/ocutils
