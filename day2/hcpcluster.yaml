@@ -1,0 +1,154 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hcp
+spec: {}
+status: {}
+---
+apiVersion: v1
+data: {}
+kind: ConfigMap
+metadata:
+  name: user-ca-bundle
+  namespace: hcp
+  labels:
+    config.openshift.io/inject-trusted-cabundle: 'true'
+---
+apiVersion: hypershift.openshift.io/v1beta1
+kind: HostedCluster
+metadata:
+  name: 'hcp'
+  namespace: 'hcp'
+  labels:
+    "cluster.open-cluster-management.io/clusterset": 'default'
+  annotations:
+    # important because of bug needs to be specified here as well
+    hypershift.openshift.io/release-image: "registry.test.sandbox2658.opentlc.com:8443/mirror/openshift/release-images:4.14.12-x86_64"
+spec:
+  additionalTrustBundle:
+    name: "user-ca-bundle"
+  olmCatalogPlacement: guest
+  imageContentSources:
+  - mirrors:
+    - registry.test.sandbox2658.opentlc.com:8443/mirror/openshift/release
+    source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+  - mirrors:
+    - registry.test.sandbox2658.opentlc.com:8443/mirror/openshift/release-images
+    source: quay.io/openshift-release-dev/ocp-release
+  - mirrors:
+    - registry.test.sandbox2658.opentlc.com:8443/mirror/calico
+    source: docker.io/calico
+  - mirrors:
+    - registry.test.sandbox2658.opentlc.com:8443/mirror/tigera
+    source: quay.io/tigera
+  - mirrors:
+    - registry.test.sandbox2658.opentlc.com:8443/mirror/rhceph
+    source: registry.redhat.io/rhceph
+  - mirrors:
+    - registry.test.sandbox2658.opentlc.com:8443/mirror/rhel8
+    source: registry.redhat.io/rhel8
+  - mirrors:
+    - registry.test.sandbox2658.opentlc.com:8443/mirror/multicluster-engine
+    source: registry.redhat.io/multicluster-engine
+  - mirrors:
+    - registry.test.sandbox2658.opentlc.com:8443/mirror/container-native-virtualization
+    source: registry.redhat.io/container-native-virtualization
+  - mirrors:
+    - registry.test.sandbox2658.opentlc.com:8443/mirror/odf4
+    source: registry.redhat.io/odf4
+  - mirrors:
+    - registry.test.sandbox2658.opentlc.com:8443/mirror/openshift4
+    source: registry.redhat.io/openshift4
+  release:
+    image: registry.test.sandbox2658.opentlc.com:8443/mirror/openshift/release-images:4.14.12-x86_64
+  pullSecret:
+    name: pullsecret-cluster-hcp
+  sshKey:
+    name: sshkey-cluster-hcp
+  networking:
+    clusterNetwork:
+      - cidr: 10.132.0.0/14
+    serviceNetwork:
+      - cidr: 172.31.0.0/16
+    networkType: Calico
+  controllerAvailabilityPolicy: HighlyAvailable
+  platform:
+    type: Agent
+    agent:
+      agentNamespace: 'hosted'
+  infraID: 'hcp'
+  dns:
+    baseDomain: 'sandbox2658.opentlc.com'
+  services:
+  - service: APIServer
+    servicePublishingStrategy:
+      type: NodePort
+      nodePort:
+        address: api.hcp.sandbox2658.opentlc.com
+        port: 30581
+  - service: OAuthServer
+    servicePublishingStrategy:
+      type: Route
+  - service: OIDC
+    servicePublishingStrategy:
+      type: Route
+  - service: Konnectivity
+    servicePublishingStrategy:
+      type: Route
+  - service: Ignition
+    servicePublishingStrategy:
+      type: Route
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pullsecret-cluster-hcp
+  namespace: hcp
+data:
+  '.dockerconfigjson': <!-- pull secret --!>
+type: kubernetes.io/dockerconfigjson
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sshkey-cluster-hcp
+  namespace: 'hcp'
+stringData:
+  id_rsa.pub: <!-- ssh public key --!>
+---
+apiVersion: hypershift.openshift.io/v1beta1
+kind: NodePool
+metadata:
+  name: 'nodepool-hcp-1'
+  namespace: 'hcp'
+spec:
+  clusterName: 'hcp'
+  replicas: 1
+  management:
+    autoRepair: false
+    upgradeType: InPlace
+  platform:
+    type: Agent
+    agent:
+      agentLabelSelector:
+        matchLabels: {}
+  release:
+    image: registry.test.sandbox2658.opentlc.com:8443/mirror/openshift/release-images:4.14.12-x86_64
+---
+apiVersion: cluster.open-cluster-management.io/v1
+kind: ManagedCluster
+metadata:
+  annotations:
+    import.open-cluster-management.io/hosting-cluster-name: local-cluster 
+    import.open-cluster-management.io/klusterlet-deploy-mode: Hosted
+    open-cluster-management/created-via: hypershift
+  labels:
+    cloud: BareMetal
+    vendor: OpenShift
+    name: 'hcp'
+    cluster.open-cluster-management.io/clusterset: 'default'
+  name: 'hcp'
+spec:
+  hubAcceptsClient: true
+---

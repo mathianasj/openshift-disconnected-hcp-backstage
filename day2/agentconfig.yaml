@@ -1,0 +1,188 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: custom-registries
+  namespace: multicluster-engine
+  labels:
+    app: assisted-service
+data:
+  ca-bundle.crt: |
+    <!!!!--- ca trust here ----!!!!>
+  registries.conf: |
+    unqualified-search-registries = ["registry.access.redhat.com", "docker.io"]
+    short-name-mode = ""
+
+    [[registry]]
+      prefix = ""
+      location = "docker.io/calico"
+
+      [[registry.mirror]]
+        location = "registry.test.sandbox2658.opentlc.com:8443/mirror/calico"
+        pull-from-mirror = "digest-only"
+
+      [[registry.mirror]]
+        location = "registry.test.sandbox2658.opentlc.com:8443/mirror/calico"
+        pull-from-mirror = "tag-only"
+
+    [[registry]]
+      prefix = ""
+      location = "quay.io/openshift-release-dev/ocp-release"
+
+      [[registry.mirror]]
+        location = "registry.test.sandbox2658.opentlc.com:8443/mirror/openshift/release-images"
+        pull-from-mirror = "digest-only"
+
+    [[registry]]
+      prefix = ""
+      location = "quay.io/openshift-release-dev/ocp-v4.0-art-dev"
+
+      [[registry.mirror]]
+        location = "registry.test.sandbox2658.opentlc.com:8443/mirror/openshift/release"
+        pull-from-mirror = "digest-only"
+
+    [[registry]]
+      prefix = ""
+      location = "quay.io/tigera"
+
+      [[registry.mirror]]
+        location = "registry.test.sandbox2658.opentlc.com:8443/mirror/tigera"
+        pull-from-mirror = "digest-only"
+
+      [[registry.mirror]]
+        location = "registry.test.sandbox2658.opentlc.com:8443/mirror/tigera"
+        pull-from-mirror = "tag-only"
+
+    [[registry]]
+      prefix = ""
+      location = "registry.redhat.io/container-native-virtualization"
+
+      [[registry.mirror]]
+        location = "registry.test.sandbox2658.opentlc.com:8443/mirror/container-native-virtualization"
+        pull-from-mirror = "digest-only"
+
+    [[registry]]
+      prefix = ""
+      location = "registry.redhat.io/multicluster-engine"
+
+      [[registry.mirror]]
+        location = "registry.test.sandbox2658.opentlc.com:8443/mirror/multicluster-engine"
+        pull-from-mirror = "digest-only"
+
+    [[registry]]
+      prefix = ""
+      location = "registry.redhat.io/odf4"
+
+      [[registry.mirror]]
+        location = "registry.test.sandbox2658.opentlc.com:8443/mirror/odf4"
+        pull-from-mirror = "digest-only"
+
+    [[registry]]
+      prefix = ""
+      location = "registry.redhat.io/openshift4"
+
+      [[registry.mirror]]
+        location = "registry.test.sandbox2658.opentlc.com:8443/mirror/openshift4"
+        pull-from-mirror = "digest-only"
+
+    [[registry]]
+      prefix = ""
+      location = "registry.redhat.io/rhceph"
+
+      [[registry.mirror]]
+        location = "registry.test.sandbox2658.opentlc.com:8443/mirror/rhceph"
+        pull-from-mirror = "digest-only"
+
+    [[registry]]
+      prefix = ""
+      location = "registry.redhat.io/rhel8"
+
+      [[registry.mirror]]
+        location = "registry.test.sandbox2658.opentlc.com:8443/mirror/rhel8"
+        pull-from-mirror = "digest-only"
+---
+apiVersion: agent-install.openshift.io/v1beta1
+kind: AgentServiceConfig
+metadata:
+  name: agent
+  namespace: multicluster-engine
+spec:
+  mirrorRegistryRef:
+    name: custom-registries 
+  databaseStorage:
+    storageClassName: ocs-storagecluster-ceph-rbd
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+  filesystemStorage:
+    storageClassName: ocs-storagecluster-ceph-rbd
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 20Gi
+  osImages: 
+  - cpuArchitecture: x86_64
+    openshiftVersion: "4.14"
+    rootFSUrl: http://registry.test.sandbox2658.opentlc.com/rhcos-live-rootfs.x86_64.img 
+    url: http://registry.test.sandbox2658.opentlc.com/rhcos-live.x86_64.iso
+    version: 414.92.202402051952-0
+---
+apiVersion: hive.openshift.io/v1
+kind: ClusterImageSet
+metadata:
+  labels:
+    channel: stable
+    visible: 'true'
+  name: img4.14.12-x86-64-appsub
+spec:
+  releaseImage: 'registry.test.sandbox2658.opentlc.com:8443/mirror/openshift/release-images:4.14.12-x86_64'
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: pullsecret-hosted
+  namespace: hosted
+data:
+  '.dockerconfigjson': ''
+type: 'kubernetes.io/dockerconfigjson'
+---
+apiVersion: agent-install.openshift.io/v1beta1
+kind: InfraEnv
+metadata:
+  name: hosted
+  namespace: hosted
+  labels:
+    agentclusterinstalls.extensions.hive.openshift.io/location: test
+    networkType: dhcp
+spec:
+  agentLabels:
+    'agentclusterinstalls.extensions.hive.openshift.io/location': test
+  pullSecretRef:
+    name: pullsecret-hosted
+  sshAuthorizedKey: <!!--- public key --!!>
+  additionalNTPSources:
+    - 169.254.169.123
+  nmStateConfigLabelSelector:	
+      matchLabels:	
+        infraenvs.agent-install.openshift.io: hosted
+  cpuArchitecture: x86_64
+status:
+  agentLabelSelector:
+    matchLabels:
+      'agentclusterinstalls.extensions.hive.openshift.io/location': test
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: capi-provider-role
+  namespace: hosted
+rules:
+  - verbs:
+      - '*'
+    apiGroups:
+      - agent-install.openshift.io
+    resources:
+      - agents

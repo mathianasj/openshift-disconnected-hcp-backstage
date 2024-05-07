@@ -1,0 +1,9 @@
+---
+- name: Create ocp mirror config directory
+  ansible.builtin.file:
+    path: /home/{{ ansible_user_id }}/ocp/mirror
+    state: directory
+- name: Generate imageset.yaml
+  ansible.builtin.template:
+    src: ../templates/imageset-config.yaml.j2
+    dest: /home/{{ansible_user_id}}/ocp/mirror/imageset-config.yaml

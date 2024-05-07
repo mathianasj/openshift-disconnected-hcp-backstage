@@ -1,0 +1,23 @@
+---
+- debug:
+    msg: "{{cluster_lb}}"
+- name: Add api as an A record with elb ip
+  amazon.aws.route53:
+    state: present
+    zone: "{{ clusterName }}.{{ baseDomain }}"
+    record: "api.{{ clusterName }}.{{ baseDomain }}"
+    type: CNAME
+    ttl: 30
+    value: "{{ cluster_lb.dns_name }}"
+    wait: true
+    private_zone: true
+- name: Add api-int as an A record with elb ip
+  amazon.aws.route53:
+    state: present
+    zone: "{{ clusterName }}.{{ baseDomain }}"
+    record: "api-int.{{ clusterName }}.{{ baseDomain }}"
+    type: CNAME
+    ttl: 30
+    value: "{{ cluster_lb.dns_name }}"
+    wait: true
+    private_zone: true

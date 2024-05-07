@@ -1,0 +1,33 @@
+apiVersion: v1
+baseDomain: {{ baseDomain }}
+compute: 
+- hyperthreading: Enabled 
+  name: worker
+  replicas: 0 
+controlPlane: 
+  hyperthreading: Enabled 
+  name: master
+  replicas: 3 
+metadata:
+  name: {{ clusterName }} 
+networking:
+  clusterNetwork:
+  - cidr: 10.128.0.0/14 
+    hostPrefix: 23 
+  networkType: Calico 
+  serviceNetwork: 
+  - 172.30.0.0/16
+platform:
+  none: {} 
+fips: false 
+pullSecret: '{{ docker_config['content'] | b64decode }}' 
+sshKey: '{{ publicKey }}'
+imageContentSources:
+  - mirrors:
+    - registry.{{ clusterName }}.{{ baseDomain }}:8443/mirror/openshift/release
+    source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+  - mirrors:
+    - registry.{{ clusterName }}.{{ baseDomain }}:8443/mirror/openshift/release-images
+    source: quay.io/openshift-release-dev/ocp-release
+additionalTrustBundle: |
+  {{ ca_crt['content'] | b64decode | indent(width=2, first=False) }}

@@ -1,0 +1,17 @@
+- name: Install nginx
+  become: true
+  ansible.builtin.dnf:
+    name: nginx
+    state: latest
+- name: Download live rootfs
+  become: true
+  ansible.builtin.get_url:
+    url: https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.14/latest/rhcos-live-rootfs.x86_64.img
+    dest: /usr/share/nginx/html/rhcos-live-rootfs.x86_64.img
+    force: no
+- name: Download rhcos
+  become: true
+  ansible.builtin.get_url:
+    url: https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.14/latest/rhcos-live.x86_64.iso
+    dest: /usr/share/nginx/html/rhcos-live.x86_64.iso
+    force: no

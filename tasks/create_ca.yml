@@ -2,10 +2,43 @@
 
 - name: Create CA directory
   ansible.builtin.file:
-    path: /home/{{ansible_user_id}}/ca
+    path: /home/{{ ansible_user_id }}/ca
     state: directory
     mode: '0777'
 
 - name: Create private key with password protection
   community.crypto.openssl_privatekey:
-    path: /home/{{ansible_user_id}}/ca/ca-certificate.key
+    path: /home/{{ ansible_user_id }}/ca/ca-certificate.key
+  register: ca_key
+- name: Create ca csr
+  community.crypto.openssl_csr:
+    path: /home/{{ansible_user_id}}/ca/ca-certificate.csr
+    privatekey_path: "{{ ca_key.filename }}"
+    common_name: "my-ca"
+    basic_constraints:
+      - 'CA:TRUE'
+    basic_constraints_critical: true
+    key_usage:
+      - keyCertSign
+    key_usage_critical: true
+  register: ca_csr
+- name: Sign the CA CSR
+  community.crypto.x509_certificate:
+    path: "/home/{{ ansible_user_id }}/ca/ca-certificate.crt"
+    csr_path: "{{ ca_csr.filename }}"
+    privatekey_path: "{{ ca_key.filename }}"
+    provider: selfsigned
+    return_content: true
+  register: ca_crt
+- name: copy certificate authority to trusted ca path of the os
+  ansible.builtin.copy:
+    src: '{{ ca_crt.filename }}'
+    dest: '/etc/pki/ca-trust/source/anchors/'
+    owner: root
+    group: root
+    mode: 0644
+    remote_src: true
+  become: true
+- name: update trusted ca redhat
+  ansible.builtin.shell: /bin/update-ca-trust
+  become: true

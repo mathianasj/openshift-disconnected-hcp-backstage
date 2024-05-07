@@ -1,0 +1,9 @@
+- hosts: all
+  name: Create imagemirror for ocp version
+  tasks:
+    - name: Create imageset 
+      ansible.builtin.include_tasks:
+        file: ../tasks/create_imageset.yml
+    - name: Mirror imageset 
+      ansible.builtin.include_tasks:
+        file: ../tasks/mirror_imageset.yml

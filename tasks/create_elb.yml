@@ -1,0 +1,111 @@
+---
+- debug:
+    msg: "{{bootstrap_ec2}}"
+- name: create 80 target group
+  community.aws.elb_target_group:
+    name: 80
+    protocol: tcp
+    port: 80
+    vpc_id: "{{ vpc_id }}"
+    state: present
+    region: "{{ region }}"
+    targets:
+      - Id: "{{ master_1_ec2.instance_ids[0] }}"
+        Port: 80
+      - Id: "{{ master_2_ec2.instance_ids[0] }}"
+        Port: 80
+      - Id: "{{ master_3_ec2.instance_ids[0] }}"
+        Port: 80
+      - Id: "{{ storage_1_ec2.instance_ids[0] }}"
+        Port: 80
+      - Id: "{{ storage_2_ec2.instance_ids[0] }}"
+        Port: 80
+      - Id: "{{ storage_3_ec2.instance_ids[0] }}"
+        Port: 80
+- name: create 443 target group
+  community.aws.elb_target_group:
+    name: 443
+    protocol: tcp
+    port: 443
+    vpc_id: "{{ vpc_id }}"
+    state: present
+    region: "{{ region }}"
+    targets:
+      - Id: "{{ master_1_ec2.instance_ids[0] }}"
+        Port: 443
+      - Id: "{{ master_2_ec2.instance_ids[0] }}"
+        Port: 443
+      - Id: "{{ master_3_ec2.instance_ids[0] }}"
+        Port: 443
+      - Id: "{{ storage_1_ec2.instance_ids[0] }}"
+        Port: 443
+      - Id: "{{ storage_2_ec2.instance_ids[0] }}"
+        Port: 443
+      - Id: "{{ storage_3_ec2.instance_ids[0] }}"
+        Port: 443
+- name: create 22623 target group
+  community.aws.elb_target_group:
+    name: 22623
+    protocol: tcp
+    port: 22623
+    region: "{{ region }}"
+    vpc_id: "{{ vpc_id }}"
+    state: present
+    targets:
+      - Id: "{{ bootstrap_ec2.instance_ids[0] }}"
+        Port: 22623
+      - Id: "{{ master_1_ec2.instance_ids[0] }}"
+        Port: 22623
+      - Id: "{{ master_2_ec2.instance_ids[0] }}"
+        Port: 22623
+      - Id: "{{ master_3_ec2.instance_ids[0] }}"
+        Port: 22623
+- name: create 6443 target group
+  community.aws.elb_target_group:
+    name: 6443
+    protocol: tcp
+    port: 6443
+    vpc_id: "{{ vpc_id }}"
+    state: present
+    region: "{{ region }}"
+    targets:
+      - Id: "{{ bootstrap_ec2.instance_ids[0] }}"
+        Port: 6443
+      - Id: "{{ master_1_ec2.instance_ids[0] }}"
+        Port: 6443
+      - Id: "{{ master_2_ec2.instance_ids[0] }}"
+        Port: 6443
+      - Id: "{{ master_3_ec2.instance_ids[0] }}"
+        Port: 6443
+
+- name: Create an cluster ELB
+  community.aws.elb_network_lb:
+    name: "{{ clusterName }}"
+    region: "{{ region }}"
+    subnets:
+      - "{{ privateSubnetId }}"
+      - "{{ privateSubnetId2 }}"
+    listeners:
+      - Protocol: TCP # Required. The protocol for connections from clients to the load balancer (TCP, TLS, UDP or TCP_UDP) (case-sensitive).
+        Port: 80 # Required. The port on which the load balancer is listening.
+        DefaultActions:
+          - Type: forward # Required. Only 'forward' is accepted at this time
+            TargetGroupName: "80" # Required. The name of the target group
+      - Protocol: TCP # Required. The protocol for connections from clients to the load balancer (TCP, TLS, UDP or TCP_UDP) (case-sensitive).
+        Port: 443 # Required. The port on which the load balancer is listening.
+        DefaultActions:
+          - Type: forward # Required. Only 'forward' is accepted at this time
+            TargetGroupName: "443" # Required. The name of the target group
+      - Protocol: TCP # Required. The protocol for connections from clients to the load balancer (TCP, TLS, UDP or TCP_UDP) (case-sensitive).
+        Port: 6443 # Required. The port on which the load balancer is listening.
+        DefaultActions:
+          - Type: forward # Required. Only 'forward' is accepted at this time
+            TargetGroupName: "6443" # Required. The name of the target group
+      - Protocol: TCP # Required. The protocol for connections from clients to the load balancer (TCP, TLS, UDP or TCP_UDP) (case-sensitive).
+        Port: 22623 # Required. The port on which the load balancer is listening.
+        DefaultActions:
+          - Type: forward # Required. Only 'forward' is accepted at this time
+            TargetGroupName: "22623" # Required. The name of the target group
+    state: present
+    scheme: "internal"
+  register: cluster_lb

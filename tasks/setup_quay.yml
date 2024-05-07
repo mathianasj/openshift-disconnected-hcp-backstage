@@ -34,7 +34,53 @@
 - name: Set quayCredsB64
   set_fact:
     quayCredsB64: "{{ ('init:' + quay_password) | b64encode }}"
+- name: Create docker config directory
+  ansible.builtin.file:
+    path: /home/{{ansible_user_id}}/.docker
+    state: directory
 - name: Write dockerconfig
   ansible.builtin.template:
     src: ../templates/pullsecret.json.j2
-    dest: /home/{{ansible_user_id}}/dockerconfig.json
+    dest: /home/{{ansible_user_id}}/.docker/config.json
+- name: Create quayhost signing key
+  community.crypto.openssl_privatekey:
+    path: /home/{{ ansible_user_id }}/ca/ca-{{ quayHostname }}_key.pem
+  register: quayhostname_key
+- name: Create the CSR for quayhost
+  community.crypto.openssl_csr:
+    path: /home/{{ ansible_user_id }}/ca/ca-{{ quayHostname }}_key.csr
+    privatekey_path: "{{ quayhostname_key.filename }}"
+    common_name: "{{ quayHostname }}"
+    subject_alt_name: "DNS:{{ quayHostname }}"
+  register: quayhostname_csr
+- name: Sign the CSR for quayhostname
+  community.crypto.x509_certificate:
+    path: /home/{{ ansible_user_id }}/ca/ca-{{ quayHostname }}.crt
+    csr_path: "{{ quayhostname_csr.filename }}"
+    provider: ownca
+    ownca_path: "{{ ca_crt.filename }}"
+    ownca_privatekey_path: "{{ ca_key.filename }}"
+    return_content: true
+  register: quayhostname_crt
+- name: Build quayHostname cert chain
+  community.crypto.certificate_complete_chain:
+    input_chain: "{{ quayhostname_crt.certificate }}"
+    root_certificates:
+    - "{{ ca_crt.filename }}"
+  register: quayhostname_chain
+- name: Copy quayHostname cert
+  ansible.builtin.copy:
+    content: "{{ ''.join(quayhostname_chain.complete_chain) }}"
+    dest: /quay/quay-config/ssl.cert
+    mode: '0755'
+- name: Copy quayHostname key
+  ansible.builtin.copy:
+    src: "{{ quayhostname_key.filename }}"
+    dest: /quay/quay-config/ssl.key
+    mode: '0755'
+    remote_src: yes
+- name: Restart quay
+  ansible.builtin.systemd_service:
+    state: restarted
+    scope: user
+    name: quay-app

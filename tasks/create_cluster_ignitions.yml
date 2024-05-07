@@ -1,0 +1,42 @@
+---
+- name: Create cluster directory
+  ansible.builtin.file:
+    path: /home/{{ ansible_user_id }}/ocp/{{ clusterName }}
+    state: directory
+- name: Create cluster install directory
+  ansible.builtin.file:
+    path: /home/{{ ansible_user_id }}/ocp/{{ clusterName }}/install
+    state: directory
+- name: Read pull secret
+  ansible.builtin.slurp:
+    src: /home/{{ansible_user_id}}/.docker/config.json
+  register: docker_config
+- name: Read CA cert
+  ansible.builtin.slurp:
+    src: /home/{{ ansible_user_id }}/ca/ca-certificate.crt
+  register: ca_crt
+- name: Generate install-config.yaml
+  ansible.builtin.template:
+    src: ../templates/install-config.yaml.j2
+    dest: /home/{{ ansible_user_id }}/ocp/{{ clusterName }}/install-config.yaml
+- name: Generate install-config.yaml
+  ansible.builtin.template:
+    src: ../templates/install-config.yaml.j2
+    dest: /home/{{ ansible_user_id }}/ocp/{{ clusterName }}/install/install-config.yaml
+- name: Generate ignition manifests
+  ansible.builtin.shell: openshift-install create manifests --dir /home/{{ ansible_user_id }}/ocp/{{ clusterName }}/install
+- name: Download calico
+  ansible.builtin.get_url:
+    url: https://github.com/projectcalico/calico/releases/download/v3.27.3/ocp.tgz
+    dest: /home/{{ ansible_user_id }}/ocp/{{ clusterName }}/install/calico.tar.gz
+    force: no
+- name: Extract calico
+  ansible.builtin.shell:
+    cmd: tar xvz --strip-components=1 -C manifests -f /home/{{ ansible_user_id }}/ocp/{{ clusterName }}/install/calico.tar.gz
+    chdir: /home/{{ ansible_user_id }}/ocp/{{ clusterName }}/install
+- name: Copy custom manifests
+  ansible.builtin.copy:
+    src: ../manifests/
+    dest: /home/{{ ansible_user_id }}/ocp/{{ clusterName }}/install/manifests
+- name: Generate ignition configs
+  ansible.builtin.shell: openshift-install create ignition-configs --dir /home/{{ ansible_user_id }}/ocp/{{ clusterName }}/install

@@ -1,0 +1,173 @@
+---
+- name: Set bootstrap for generation
+  set_fact:
+    node_type: "bootstrap"
+- name: Generate bootstrap user data
+  set_fact:
+    rendered_bootstrap_user_data: "{{ lookup('template', '../templates/user_data.json.j2') }}"
+- name: Set master for generation
+  set_fact:
+    node_type: "master"
+- name: Generate master user data
+  set_fact:
+    rendered_master_user_data: "{{ lookup('template', '../templates/user_data.json.j2') }}"
+- name: Set worker for generation
+  set_fact:
+    node_type: "worker"
+- name: Generate worker user data
+  set_fact:
+    rendered_worker_user_data: "{{ lookup('template', '../templates/user_data.json.j2') }}"
+
+- name: start an bootstrap instance
+  amazon.aws.ec2_instance:
+    name: "{{ clusterName }}-bootstrap"
+    vpc_subnet_id: "{{ privateSubnetId }}"
+    instance_type: m4.2xlarge
+    security_group: default
+    image_id: "{{ coreosAMI }}"
+    tags:
+      cluster: "{{ clusterName }}"
+    user_data: "{{ rendered_bootstrap_user_data | to_json }}"
+    volumes:
+      - device_name: /dev/xvda
+        ebs:
+          volume_size: 120
+          delete_on_termination: true
+    region: "{{ region }}"
+    iam_instance_profile: "{{ cluster_iam_role }}"
+    wait: true
+    state: running
+  register: bootstrap_ec2
+- name: start an master 1 instance
+  amazon.aws.ec2_instance:
+    name: "{{ clusterName }}-master1"
+    vpc_subnet_id: "{{ privateSubnetId }}"
+    instance_type: m4.2xlarge
+    security_group: default
+    image_id: "{{ coreosAMI }}"
+    tags:
+      cluster: "{{ clusterName }}"
+    user_data: "{{ rendered_master_user_data | to_json }}"
+    volumes:
+      - device_name: /dev/xvda
+        ebs:
+          volume_size: 120
+          delete_on_termination: true
+    region: "{{ region }}"
+    iam_instance_profile: "{{ cluster_iam_role }}"
+    wait: true
+    state: running
+  register: master_1_ec2
+- name: start an master 2 instance
+  amazon.aws.ec2_instance:
+    name: "{{ clusterName }}-master2"
+    vpc_subnet_id: "{{ privateSubnetId }}"
+    instance_type: m4.2xlarge
+    security_group: default
+    image_id: "{{ coreosAMI }}"
+    tags:
+      cluster: "{{ clusterName }}"
+    user_data: "{{ rendered_master_user_data | to_json }}"
+    volumes:
+      - device_name: /dev/xvda
+        ebs:
+          volume_size: 120
+          delete_on_termination: true
+    region: "{{ region }}"
+    iam_instance_profile: "{{ cluster_iam_role }}"
+    wait: true
+    state: running
+  register: master_2_ec2
+- name: start an master 3 instance
+  amazon.aws.ec2_instance:
+    name: "{{ clusterName }}-master3"
+    vpc_subnet_id: "{{ privateSubnetId }}"
+    instance_type: m4.2xlarge
+    security_group: default
+    image_id: "{{ coreosAMI }}"
+    tags:
+      cluster: "{{ clusterName }}"
+    user_data: "{{ rendered_master_user_data | to_json }}"
+    volumes:
+      - device_name: /dev/xvda
+        ebs:
+          volume_size: 120
+          delete_on_termination: true
+    region: "{{ region }}"
+    iam_instance_profile: "{{ cluster_iam_role }}"
+    wait: true
+    state: running
+  register: master_3_ec2
+
+- name: start an storage 1 instance
+  amazon.aws.ec2_instance:
+    name: "{{ clusterName }}-storage1"
+    vpc_subnet_id: "{{ privateSubnetId }}"
+    instance_type: m4.2xlarge
+    security_group: default
+    image_id: "{{ coreosAMI }}"
+    tags:
+      cluster: "{{ clusterName }}"
+    user_data: "{{ rendered_worker_user_data | to_json }}"
+    volumes:
+      - device_name: /dev/xvda
+        ebs:
+          volume_size: 120
+          delete_on_termination: true
+      - device_name: /dev/xvdb
+        ebs:
+          volume_size: 1000
+          delete_on_termination: true
+    region: "{{ region }}"
+    iam_instance_profile: "{{ cluster_iam_role }}"
+    wait: true
+    state: running
+  register: storage_1_ec2
+- name: start an storage 2 instance
+  amazon.aws.ec2_instance:
+    name: "{{ clusterName }}-storage2"
+    vpc_subnet_id: "{{ privateSubnetId }}"
+    instance_type: m4.2xlarge
+    security_group: default
+    image_id: "{{ coreosAMI }}"
+    tags:
+      cluster: "{{ clusterName }}"
+    user_data: "{{ rendered_worker_user_data | to_json }}"
+    volumes:
+      - device_name: /dev/xvda
+        ebs:
+          volume_size: 120
+          delete_on_termination: true
+      - device_name: /dev/xvdb
+        ebs:
+          volume_size: 1000
+          delete_on_termination: true
+    region: "{{ region }}"
+    iam_instance_profile: "{{ cluster_iam_role }}"
+    wait: true
+    state: running
+  register: storage_2_ec2
+- name: start an storage 3 instance
+  amazon.aws.ec2_instance:
+    name: "{{ clusterName }}-storage3"
+    vpc_subnet_id: "{{ privateSubnetId }}"
+    instance_type: m4.2xlarge
+    security_group: default
+    image_id: "{{ coreosAMI }}"
+    tags:
+      cluster: "{{ clusterName }}"
+    user_data: "{{ rendered_worker_user_data | to_json }}"
+    volumes:
+      - device_name: /dev/xvda
+        ebs:
+          volume_size: 120
+          delete_on_termination: true
+      - device_name: /dev/xvdb
+        ebs:
+          volume_size: 1000
+          delete_on_termination: true
+    region: "{{ region }}"
+    iam_instance_profile: "{{ cluster_iam_role }}"
+    wait: true
+    state: running
+  register: storage_3_ec2

@@ -1,0 +1,6 @@
+---
+- name: Mirror the imageset
+  ansible.builtin.shell:
+    cmd: "oc mirror --config=/home/{{ansible_user_id}}/ocp/mirror/imageset-config.yaml docker://{{ quayHostname }}:8443/mirror"
+    chdir: /home/{{ansible_user_id}}/ocp/mirror
+  register: ocmirror_output

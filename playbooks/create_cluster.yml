@@ -1,0 +1,24 @@
+- name: Create management cluster
+  hosts: all
+  tasks:
+    - name: Create install ignitions
+      ansible.builtin.include_tasks:
+        file: ../tasks/create_cluster_ignitions.yml
+    - name: Install Dependencies
+      ansible.builtin.include_tasks:
+        file: ../tasks/download_mirror_tools.yml
+    - name: Copy s3 configs
+      ansible.builtin.include_tasks:
+        file: ../tasks/copy_ignitions.yml
+    - name: Create ec2 instances
+      ansible.builtin.include_tasks:
+        file: ../tasks/create_ec2.yml
+    - name: Create lb instances
+      ansible.builtin.include_tasks:
+        file: ../tasks/create_elb.yml
+    - name: Create route53 instances
+      ansible.builtin.include_tasks:
+        file: ../tasks/create_route53.yml
+    - name: Fetch isos
+      ansible.builtin.include_tasks:
+        file: ../tasks/setup_nginx.yml

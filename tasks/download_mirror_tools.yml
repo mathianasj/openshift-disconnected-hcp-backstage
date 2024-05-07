@@ -1,0 +1,14 @@
+---
+- name: Install pip
+  become: true
+  ansible.builtin.dnf:
+    name: python3-pip
+    state: latest
+- name: Install botocore
+  become: true
+  ansible.builtin.pip:
+    name: botocore
+- name: Install boto3
+  become: true
+  ansible.builtin.pip:
+    name: boto3

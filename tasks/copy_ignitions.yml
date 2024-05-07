@@ -1,0 +1,30 @@
+---
+- name: create ignition config s3 bucket
+  amazon.aws.s3_bucket:
+    name: "{{ clusterName }}-{{ baseDomain }}-config2"
+    state: present
+    region: "{{ region }}"
+  register: config_s3_bucket
+- debug:
+    msg: "{{config_s3_bucket}}"
+- name: copy bootstrap.ign
+  amazon.aws.s3_object:
+    bucket: "{{ config_s3_bucket.name }}"
+    object: /bootstrap.ign
+    src: /home/{{ ansible_user_id }}/ocp/{{ clusterName }}/install/bootstrap.ign
+    mode: put
+    region: "{{ region }}"
+- name: copy worker.ign
+  amazon.aws.s3_object:
+    bucket: "{{ config_s3_bucket.name }}"
+    object: /worker.ign
+    src: /home/{{ ansible_user_id }}/ocp/{{ clusterName }}/install/worker.ign
+    mode: put
+    region: "{{ region }}"
+- name: copy master.ign
+  amazon.aws.s3_object:
+    bucket: "{{ config_s3_bucket.name }}"
+    object: /master.ign
+    src: /home/{{ ansible_user_id }}/ocp/{{ clusterName }}/install/master.ign
+    mode: put
+    region: "{{ region }}"

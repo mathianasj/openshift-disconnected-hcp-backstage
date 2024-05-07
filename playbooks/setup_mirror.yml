@@ -1,4 +1,5 @@
 - hosts: all
+  name: Setup registry mirror
   tasks:
     - name: Setup Mirror Dependencies
       ansible.builtin.include_tasks:
